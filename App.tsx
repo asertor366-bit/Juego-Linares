@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { GameLevel } from './types';
 import { generateGameConcept } from './services/geminiService';
-import Header from './components/Header';
 import ConceptForm from './components/ConceptForm';
 import ConceptDisplay from './components/ConceptDisplay';
 import { LINARES_LOCATIONS, CYBER_THREATS } from './constants';
+import Header from './components/Header';
 
 const App: React.FC = () => {
   const [threat, setThreat] = useState<string>(CYBER_THREATS[0]);

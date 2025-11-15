@@ -4,6 +4,7 @@ export interface GameLevel {
   threat: string;
   missionDescription: string;
   challenge: string;
+  options: string[];
   reward: string;
   npc?: {
     name: string;

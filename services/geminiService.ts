@@ -1,7 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GameLevel } from '../types';
+import { CYBER_SOLUTIONS } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const apiKey = process.env.API_KEY;
+if (!apiKey) {
+  throw new Error("API_KEY environment variable not set.");
+}
+const ai = new GoogleGenAI({ apiKey });
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -24,11 +29,18 @@ const responseSchema = {
     },
     challenge: {
       type: Type.STRING,
-      description: "El reto o puzzle principal que el jugador debe superar, relacionado con la amenaza y la ubicación."
+      description: "Un reto o puzzle corto y directo que el jugador debe superar, relacionado con la misión."
+    },
+    options: {
+        type: Type.ARRAY,
+        description: "Una lista de tres posibles soluciones para el reto. Una es la 'palabra clave de ayuda' correcta, y las otras dos son incorrectas y disparatadas. Las opciones deben estar en orden aleatorio.",
+        items: {
+            type: Type.STRING
+        }
     },
     reward: {
       type: Type.STRING,
-      description: "La recompensa o 'fuerza' que obtienen los héroes al completar el nivel, como un número de teléfono de ayuda (INCIBE, Policía) o una nueva habilidad."
+      description: "La 'palabra clave de ayuda' que el jugador debe descubrir para superar el reto. Debe ser una de las soluciones clave proporcionadas en el prompt (ej: 'Familia y entorno cercano'). Esta es la opción correcta."
     },
     npc: {
         type: Type.OBJECT,
@@ -39,24 +51,34 @@ const responseSchema = {
         },
     }
   },
-  required: ["title", "location", "threat", "missionDescription", "challenge", "reward"]
+  required: ["title", "location", "threat", "missionDescription", "challenge", "options", "reward"]
 };
 
 export async function generateGameConcept(threat: string, location: string): Promise<GameLevel> {
+  const solutionList = CYBER_SOLUTIONS.map(s => `- ${s}`).join('\n');
+
   const prompt = `
-    Eres un diseñador de videojuegos experto. Tu tarea es crear un concepto para un nivel de un juego de superhéroes.
+    Eres un diseñador de videojuegos educativo y creativo. Tu tarea es crear un concepto para un nivel de un juego de superhéroes para concienciar a los jóvenes.
     
     **Ambientación del Juego:**
-    - **Héroes:** Un superhéroe y una superheroína de la ciudad de Linares, Jaén, España.
-    - **Misión:** Luchar contra amenazas digitales como el ciberacoso, grooming, sexting, etc.
-    - **Mecánica:** En cada nivel, los héroes superan un reto en un lugar emblemático de Linares. Al superarlo, obtienen 'fuerzas' o 'power-ups' que son recursos del mundo real para luchar contra estas amenazas (ej: el número de teléfono de INCIBE 017, contacto con la Policía Nacional, consejos de ciberseguridad, etc.).
+    - **Héroes:** Anibalex e Hymilka, superhéroes de la ciudad de Linares, Jaén, España.
+    - **Misión:** Luchar contra amenazas digitales como el grooming, sextorsión, etc.
+    - **Mecánica:** En cada nivel, los héroes se enfrentan a un reto. Para superarlo, deben elegir la opción correcta entre tres posibilidades. La opción correcta es la 'palabra clave de ayuda', que representa a quién o a qué pueden recurrir en la vida real.
 
     **Tu Tarea:**
     Genera un concepto DETALLADO para un nivel del juego basado en los siguientes parámetros:
     - **Amenaza a combatir:** ${threat}
     - **Lugar emblemático de Linares:** ${location}
 
-    Responde únicamente con un objeto JSON que siga el esquema proporcionado. No incluyas explicaciones adicionales ni texto fuera del JSON.
+    1.  **Diseña un reto corto y directo** relacionado con la amenaza.
+    2.  **Elige UNA 'palabra clave de ayuda'** de la siguiente lista como la solución correcta. Esta será el valor del campo 'reward'.
+    3.  **Crea DOS opciones más que sean totalmente disparatadas** y no tengan relación con la solución.
+    4.  **Mezcla estas tres opciones** (la correcta y las dos disparatadas) y ponlas en el campo 'options'.
+
+    **Posibles 'Palabras Clave de Ayuda' (la recompensa DEBE ser una de estas):**
+    ${solutionList}
+
+    Responde únicamente con un objeto JSON que siga el esquema proporcionado. El campo 'reward' debe contener la 'palabra clave de ayuda' exacta que has elegido. El campo 'options' debe contener la recompensa y las dos opciones disparatadas en orden aleatorio. No incluyas explicaciones adicionales ni texto fuera del JSON.
   `;
 
   try {
